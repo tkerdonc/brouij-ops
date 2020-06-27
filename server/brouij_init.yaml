@@ -1,0 +1,122 @@
+---
+- hosts: mainserver
+  tasks:
+    - name: Create remote artifact directory
+      become: true
+      file:
+        path: /opt/custom
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+    - name: push artifacts
+      synchronize:
+        dirs: true
+        mode: push
+        src: "resources"
+        dest: "/opt/custom"
+    - name: Install aptitude
+      become: true
+      apt:
+        pkg:
+          - "aptitude"
+    - name: Update os packages
+      become: true
+      apt:
+        update_cache: true
+        upgrade: safe
+    - name: Install dependencies
+      become: true
+      apt:
+        pkg:
+          - "docker.io"
+          - "ntp"
+          - "python3-passlib"
+          - "python3-pip"
+          - "openssl"
+    - name: Add the ubuntu user to docker group
+      become: true
+      user:
+        name: ubuntu
+        groups: docker
+        append: true
+    - name: install python docker binding
+      pip:
+        name: "docker-py"
+      become: true
+    - pip:
+        name: "certbot"
+      become: true
+    - name: Setup certificates
+      become: true
+      shell: "certbot certonly --standalone \
+                               --agree-tos \
+                               --preferred-challenges http \
+                               -m {{ ops_mail }} \
+                               --keep \
+                               -d {{ dns_name }}"
+    - name: Enable services
+      become: true
+      shell: "systemctl enable docker && systemctl start docker"
+    - name: Set timezone
+      become: true
+      timezone:
+        name: Europe/Paris
+    - name: init http passwords
+      with_items:
+        - dashboard
+      loop_control:
+        loop_var: account
+      include: htpasswd_init.yaml
+    - name: Create docker network
+      docker_network:
+        name: docker_network
+        state: present
+        force: true
+    - name: Run grafana container
+      docker_container:
+        name: grafana
+        image: grafana/grafana:7.0.3
+        state: "started"
+        restart_policy: "unless-stopped"
+        recreate: true
+        env:
+          GF_SECURITY_ADMIN_USER: "dashboard"
+          GF_SECURITY_ADMIN_PASSWORD: "{{ web_password }}"
+          GF_USERS_ALLOW_SIGN_UP: "false"
+        ports:
+          - "3000:3000"
+        networks:
+          - name: docker_network
+        volumes:
+          - "/opt/custom/resources/grafana/provisioning:/etc/grafana/provisioning:ro"
+          - "/opt/custom/resources/grafana/dashboards:/var/lib/grafana/dashboards:ro"
+        log_driver: json-file
+        log_options:
+          max-size: "50m"
+          max-file: "3"
+    - name: Run nginx container
+      docker_container:
+        name: nginx
+        image: nginx:1.18
+        env:
+          SERVER_NAME: "{{ dns_name }}"
+        command:
+          - "/opt/custom/entrypoint.sh"
+        restart_policy: "unless-stopped"
+        recreate: true
+        state: "started"
+        ports:
+          - "80:80"
+          - "443:443"
+        volumes:
+          - "/etc/letsencrypt/live/{{ dns_name }}/fullchain.pem:/etc/nginx/certs/fullchain.pem:ro"
+          - "/etc/letsencrypt/live/{{ dns_name }}/privkey.pem:/etc/nginx/certs/privkey.pem:ro"
+          - "/opt/custom/resources/nginx/nginx.conf:/etc/nginx/conf.d/default.template:ro"
+          - "/opt/custom/resources/nginx/nginx_entrypoint.sh:/opt/custom/entrypoint.sh:ro"
+          - "/opt/custom/htpasswd.dashboard:/etc/nginx/conf/htpasswd.dashboard:ro"
+        networks:
+          - name: docker_network
+        log_driver: json-file
+        log_options:
+          max-size: "50m"
+          max-file: "5"
