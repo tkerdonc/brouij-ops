@@ -62,11 +62,18 @@
       timezone:
         name: Europe/Paris
     - name: init http passwords
-      with_items:
-        - dashboard
+      htpasswd:
+        path: "/opt/custom/htpasswd.grafana"
+        name: "{{ graf_admin }}"
+        password: "{{ graf_password }}"
+    - name: create non admin htpasswd entries
+      with_items: "{{ non_admin_users }}"
       loop_control:
         loop_var: account
-      include: htpasswd_init.yaml
+      htpasswd:
+        path: "/opt/custom/htpasswd.grafana"
+        name: "{{ account.name }}"
+        password: "{{ account.password }}"
     - name: Create docker network
       docker_network:
         name: docker_network
@@ -80,8 +87,8 @@
         restart_policy: "unless-stopped"
         recreate: true
         env:
-          GF_SECURITY_ADMIN_USER: "dashboard"
-          GF_SECURITY_ADMIN_PASSWORD: "{{ web_password }}"
+          GF_SECURITY_ADMIN_USER: "{{ graf_admin }}"
+          GF_SECURITY_ADMIN_PASSWORD: "{{ graf_password }}"
           GF_USERS_ALLOW_SIGN_UP: "false"
         ports:
           - "3000:3000"
@@ -113,10 +120,29 @@
           - "/etc/letsencrypt/live/{{ dns_name }}/privkey.pem:/etc/nginx/certs/privkey.pem:ro"
           - "/opt/custom/resources/nginx/nginx.conf:/etc/nginx/conf.d/default.template:ro"
           - "/opt/custom/resources/nginx/nginx_entrypoint.sh:/opt/custom/entrypoint.sh:ro"
-          - "/opt/custom/htpasswd.dashboard:/etc/nginx/conf/htpasswd.dashboard:ro"
+          - "/opt/custom/htpasswd.grafana:/etc/nginx/conf/htpasswd.grafana:ro"
         networks:
           - name: docker_network
         log_driver: json-file
         log_options:
           max-size: "50m"
           max-file: "5"
+    - name: create non admin grafana users
+      with_items: "{{ non_admin_users }}"
+      loop_control:
+        loop_var: account
+      uri:
+        url: "http://localhost:3000/api/admin/users"
+        user: "{{ graf_admin }}"
+        password: "{{ graf_password }}"
+        method: POST
+        body:
+          name: "{{ account.name }}"
+          login: "{{ account.name }}"
+          password: "{{ account.password }}"
+          isGrafanaAdmin: "false"
+        force_basic_auth: yes
+        status_code:
+          - 200
+          - 201
+        body_format: json

@@ -1,0 +1,17 @@
+---
+all:
+  hosts:
+    mainserver:
+      ansible_host: 256.256.255.256
+      dns_name: domain.example.com
+      ops_mail: mail@domain.example.com
+      ansible_user: loginname
+      ansible_python_interpreter: /usr/bin/python3
+      ansible_ssh_private_key_file: /path/to/ssh/key
+      graf_admin: sample_grafana_admin_login
+      graf_password: sample_grafana_password
+      non_admin_users:
+        - name: sample_guest_user
+          password: sample_grafana_guest_pass
+        - name: sample_guest_user_2
+          password: sample_grafana_guest_pass_2
