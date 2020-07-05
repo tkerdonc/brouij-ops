@@ -1,0 +1,3 @@
+[submodule "server/resources/brouij-gallery"]
+	path = server/modules/brouij-gallery
+	url = git@github.com:tkerdonc/brouij-gallery.git

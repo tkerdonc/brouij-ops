@@ -8,6 +8,9 @@
         state: directory
         owner: ubuntu
         group: ubuntu
+    - name: build frontend
+      delegate_to: localhost
+      shell: "cd modules/brouij-gallery; OUT_FILE=../../resources/gallery/main.js make"
     - name: push artifacts
       synchronize:
         dirs: true
@@ -53,7 +56,12 @@
                                --preferred-challenges http \
                                -m {{ ops_mail }} \
                                --keep \
-                               -d {{ dns_name }}"
+                               -d {{ servername }}"
+      with_items:
+        - "{{ dns_name }}"
+        - "graf.{{ dns_name }}"
+      loop_control:
+        loop_var: servername
     - name: Enable services
       become: true
       shell: "systemctl enable docker && systemctl start docker"
@@ -118,9 +126,12 @@
         volumes:
           - "/etc/letsencrypt/live/{{ dns_name }}/fullchain.pem:/etc/nginx/certs/fullchain.pem:ro"
           - "/etc/letsencrypt/live/{{ dns_name }}/privkey.pem:/etc/nginx/certs/privkey.pem:ro"
+          - "/etc/letsencrypt/live/graf.{{ dns_name }}/fullchain.pem:/etc/nginx/certs/graf.fullchain.pem:ro"
+          - "/etc/letsencrypt/live/graf.{{ dns_name }}/privkey.pem:/etc/nginx/certs/graf.privkey.pem:ro"
           - "/opt/custom/resources/nginx/nginx.conf:/etc/nginx/conf.d/default.template:ro"
           - "/opt/custom/resources/nginx/nginx_entrypoint.sh:/opt/custom/entrypoint.sh:ro"
           - "/opt/custom/htpasswd.grafana:/etc/nginx/conf/htpasswd.grafana:ro"
+          - "/opt/custom/resources/gallery:/www/gallery/:ro"
         networks:
           - name: docker_network
         log_driver: json-file
