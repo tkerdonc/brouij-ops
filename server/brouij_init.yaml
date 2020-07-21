@@ -87,6 +87,25 @@
         name: docker_network
         state: present
         force: true
+    - name: Run graphite container
+      docker_container:
+        name: graphite
+        image: graphiteapp/graphite-statsd
+        state: "started"
+        restart_policy: "unless-stopped"
+        recreate: true
+        env:
+          STATSD_INTERFACE: "udp"
+        ports:
+          - "8125:8125/udp"
+        networks:
+          - name: docker_network
+        volumes:
+          - "/opt/custom/graphite_data:/opt/graphite/storage:rw"
+        log_driver: json-file
+        log_options:
+          max-size: "50m"
+          max-file: "3"
     - name: Run grafana container
       docker_container:
         name: grafana
