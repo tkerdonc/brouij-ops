@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1595334196893,
+  "iteration": 1595864574421,
   "links": [],
   "panels": [
     {
@@ -23,7 +23,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "Graphite",
+      "datasource": "InfluxDB",
       "fieldConfig": {
         "defaults": {
           "custom": {}
@@ -40,6 +40,7 @@
       },
       "hiddenSeries": false,
       "id": 2,
+      "interval": "",
       "legend": {
         "avg": false,
         "current": false,
@@ -51,7 +52,7 @@
       },
       "lines": true,
       "linewidth": 1,
-      "nullPointMode": "null",
+      "nullPointMode": "connected",
       "options": {
         "dataLinks": []
       },
@@ -65,8 +66,53 @@
       "steppedLine": false,
       "targets": [
         {
+          "alias": "",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "phase"
+              ],
+              "type": "tag"
+            },
+            {
+              "params": [
+                "null"
+              ],
+              "type": "fill"
+            }
+          ],
+          "measurement": "temperature",
+          "orderByTime": "ASC",
+          "policy": "autogen",
           "refId": "A",
-          "target": "stats.gauges.temperature.$beer.*"
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "mean"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "beer",
+              "operator": "=~",
+              "value": "/^$beer$/"
+            }
+          ]
         }
       ],
       "thresholds": [],
@@ -89,7 +135,8 @@
       },
       "yaxes": [
         {
-          "format": "short",
+          "$$hashKey": "object:176",
+          "format": "celsius",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -97,6 +144,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:177",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -119,19 +167,19 @@
       {
         "allValue": null,
         "current": {
-          "selected": true,
-          "text": "chardoncuff_ipa",
-          "value": "chardoncuff_ipa"
+          "selected": false,
+          "text": "dev_beer",
+          "value": "dev_beer"
         },
-        "datasource": "Graphite",
-        "definition": "stats.gauges.temperature.*",
+        "datasource": "InfluxDB",
+        "definition": " show tag values with key=\"beer\"",
         "hide": 0,
         "includeAll": false,
         "label": null,
         "multi": false,
         "name": "beer",
         "options": [],
-        "query": "stats.gauges.temperature.*",
+        "query": " show tag values with key=\"beer\"",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -145,7 +193,7 @@
     ]
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-15m",
     "to": "now"
   },
   "timepicker": {

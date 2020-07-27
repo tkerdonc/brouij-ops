@@ -87,15 +87,18 @@
         name: docker_network
         state: present
         force: true
-    - name: Run graphite container
+    - name: Run influxdb container
       docker_container:
-        name: graphite
-        image: graphiteapp/graphite-statsd
+        name: influx
+        image: influxdb:1.8.1
         state: "started"
         restart_policy: "unless-stopped"
         recreate: true
         env:
-          STATSD_INTERFACE: "udp"
+           INFLUXDB_UDP_ENABLED: "true"
+           INFLUXDB_UDP_BIND_ADDRESS: "0.0.0.0:8125"
+           INFLUXDB_UDP_DATABASE: "brewing"
+           INFLUXDB_DB: "brewing"
         ports:
           - "8125:8125/udp"
         networks:
