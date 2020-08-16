@@ -103,8 +103,6 @@
           - "8125:8125/udp"
         networks:
           - name: docker_network
-        volumes:
-          - "/opt/custom/graphite_data:/opt/graphite/storage:rw"
         log_driver: json-file
         log_options:
           max-size: "50m"
